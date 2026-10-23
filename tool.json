@@ -1,0 +1,13 @@
+{
+  "id": "o13",
+  "slug": "image-compressor",
+  "name": "图片批量压缩",
+  "version": "0.1.0",
+  "repo": "campfire-code/image-compressor",
+  "license": "MIT",
+  "ui": {
+    "layout": "b",
+    "palette": "teal"
+  },
+  "upstream": null
+}
