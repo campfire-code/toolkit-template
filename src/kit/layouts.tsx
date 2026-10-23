@@ -4,7 +4,7 @@ import { Image as ImageIcon, Clock, KeyRound, Info, Trash2, Settings2, ChevronLe
 import type { Field, LayoutId, ToolMeta } from './types';
 import type { Row, Runner } from './runner';
 import {
-  AboutPage, AddButtons, DropZone, EmptyState, ExportAction, FieldControl, HistoryPage, Notice, ParamsPanel, PrimaryAction,
+  AboutPage, AddButtons, BrandMark, DropZone, EmptyState, ExportAction, FieldControl, HistoryPage, Notice, ParamsPanel, PrimaryAction,
   ProgressBar, ResultText, RowActions, SettingsPage, StatusChip, Summary, Thumb, pct,
 } from './parts';
 
@@ -110,7 +110,7 @@ function LayoutA({ runner, meta, hover, page, setPage }: LayoutProps) {
   return (
     <div className="L-a">
       <nav className="a-side" aria-label="导航">
-        <div className="a-brand"><span className="a-logo"><ImageIcon size={18} /></span><span>{meta.name}</span></div>
+        <div className="a-brand"><span className="a-logo"><ImageIcon size={18} /></span><span className="a-brand-text"><span>{meta.name}</span><BrandMark /></span></div>
         {pagesFor(runner).map(([p, l, I]) => (
           <button key={p} className={`a-nav${page === p ? ' on' : ''}`} onClick={() => setPage(p)} aria-current={page === p}><I size={16} />{l || mainLabel(runner)}</button>
         ))}
@@ -165,7 +165,7 @@ function LayoutB({ runner, meta, hover, page, setPage }: LayoutProps) {
           </aside>
         </div>
       )}
-      <div className="b-status"><Footer runner={runner} /><span className="b-sp" /><span className="k-muted">{meta.name} {meta.version}</span></div>
+      <div className="b-status"><Footer runner={runner} /><span className="b-sp" /><span className="k-muted">{meta.name} {meta.version}</span><BrandMark /></div>
     </div>
   );
 }
@@ -241,7 +241,7 @@ function LayoutC({ runner, meta, hover, page, setPage }: LayoutProps) {
       {page === 'main' && (
         <footer className="c-foot">
           <button className="k-btn big" disabled={view === 0 || runner.running} onClick={() => setStep(view === runStep + 1 ? runStep - 1 : view - 1)}><ChevronLeft size={16} />{view === runStep + 1 ? '改设置再来一次' : '上一步'}</button>
-          <span className="k-muted">{meta.name}</span>
+          <span className="k-muted c-mid">{meta.name}<BrandMark /></span>
           {runner.running ? <button className="k-btn big" onClick={runner.pause}>暂停</button> : view > runStep ? <ExportAction runner={runner} /> : (
             <button className="k-btn primary big" disabled={batch && view === 0 && !runner.rows.length} onClick={next}>{view + 1 === runStep ? genLabel : '下一步'}<ChevronRight size={16} /></button>
           )}
@@ -266,7 +266,7 @@ function LayoutD({ runner, meta, hover, page, setPage }: LayoutProps) {
   const row = runner.rows.find((r) => r.item.id === sel) ?? runner.rows.find((r) => r.status === 'run') ?? runner.rows[0];
   return (
     <div className="L-d">
-      <div className="d-top"><b>{meta.name}</b><span className="b-sp" />{pagesFor(runner).map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l || mainLabel(runner)}</button>)}</div>
+      <div className="d-top"><b>{meta.name}</b><BrandMark /><span className="b-sp" />{pagesFor(runner).map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l || mainLabel(runner)}</button>)}</div>
       {page !== 'main' ? <div className="d-page k-scroll"><SubPage page={page} runner={runner} meta={meta} /></div> : (
         <div className="d-body">
           <aside className="d-files">
@@ -292,7 +292,7 @@ function LayoutE({ runner, meta, hover, page, setPage }: LayoutProps) {
   const rest = runner.tool.params.filter((f) => !quick.includes(f));
   return (
     <div className="L-e">
-      <div className="e-top">{pagesFor(runner).slice(1).map(([p, l]) => <button key={p} className={`k-link${page === p ? ' on' : ''}`} onClick={() => setPage(page === p ? 'main' : p)}>{l}</button>)}</div>
+      <div className="e-top"><BrandMark /><span className="b-sp" />{pagesFor(runner).slice(1).map(([p, l]) => <button key={p} className={`k-link${page === p ? ' on' : ''}`} onClick={() => setPage(page === p ? 'main' : p)}>{l}</button>)}</div>
       <main className="e-col k-scroll">
         {page !== 'main' ? <><button className="k-link" onClick={() => setPage('main')}><ChevronLeft size={14} />返回</button><SubPage page={page} runner={runner} meta={meta} /></> : (
           <>
@@ -319,7 +319,7 @@ function LayoutF({ runner, meta, hover, page, setPage }: LayoutProps) {
   const shown: Runner = filter === 'all' ? runner : { ...runner, rows: runner.rows.filter((r) => r.status === filter) };
   return (
     <div className="L-f">
-      <div className="f-tabs" role="tablist">
+      <div className="f-tabs" role="tablist"><span className="f-brand"><BrandMark /></span>
         {pagesFor(runner).map(([p, l, I]) => <button key={p} role="tab" aria-selected={page === p} className={`f-tab${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l || mainLabel(runner)}</button>)}
         <span className="b-sp" />
         {page === 'main' && <AddButtons runner={runner} />}

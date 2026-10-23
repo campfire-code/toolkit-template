@@ -7,6 +7,6 @@ import type { ToolMeta } from './kit/types';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <KitErrorBoundary><KitApp tool={tool} meta={meta as ToolMeta} /></KitErrorBoundary>
+    <KitErrorBoundary><KitApp tool={{ ...tool, name: meta.name }} meta={meta as ToolMeta} /></KitErrorBoundary>
   </React.StrictMode>,
 );

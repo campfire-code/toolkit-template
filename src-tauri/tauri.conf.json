@@ -45,8 +45,8 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "publisher": "campfire-code",
-    "copyright": "MIT License · campfire-code",
+    "publisher": "篝火 campfire-code",
+    "copyright": "Copyright © 2026 篝火（campfire-code）· MIT License",
     "category": "Productivity",
     "shortDescription": "图片批量压缩",
     "macOS": {

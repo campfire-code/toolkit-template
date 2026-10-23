@@ -2,6 +2,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Check, X, Loader2, FileText, FolderOpen, Copy, Plus, FolderPlus, Upload, ExternalLink } from 'lucide-react';
 import type { Field, ToolMeta } from './types';
+import { BRAND } from './brand';
 import type { Row, Runner } from './runner';
 import { fileSrc, openFolder, openLink, pickFiles, pickFolder, reveal } from './platform';
 import { LLM_PRESETS, chat, llmReady, saveSettings, useSettings, type ThemePref } from './settings';
@@ -263,7 +264,16 @@ export function AboutPage({ meta, tagline, withTheme }: { meta: ToolMeta; taglin
           <button className="k-btn" onClick={() => openLink(`https://github.com/${meta.repo}/releases/latest`)}><ExternalLink size={15} />检查新版本</button>
         </div>
       </section>
+      <section className="k-section">
+        <h3>归属</h3>
+        <p><span className="k-brand">{BRAND.mark}</span></p>
+        <p className="k-muted">{BRAND.statement}</p>
+        <p className="k-muted">更多工具：{BRAND.store}，或访问 github.com/{BRAND.org}/toolkit-hub</p>
+      </section>
       {withTheme && <ThemeSwitch />}
     </div>
   );
 }
+
+/** 界面里的归属标识，各布局放在不抢眼的位置 */
+export const BrandMark = () => <span className="k-brand" title={BRAND.statement}>{BRAND.mark}</span>;

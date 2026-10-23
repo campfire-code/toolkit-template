@@ -1,5 +1,7 @@
 # toolkit-template
 
+> 篝火出品 · 篝火 App 应用区开源工具的统一模板
+
 campfire-code 开源工具箱的桌面工具模板（Tauri 2 + React + TypeScript）。仓库里自带一个能直接运行的样例工具「图片批量压缩」。
 
 ## 结构
@@ -26,6 +28,10 @@ pnpm tauri dev
 
 布局预览（开发用，不需要启动桌面应用）：`pnpm dev` 后打开 `http://localhost:1420/preview.html?layout=a&palette=blue&mode=light&state=running`。
 
+## 归属
+
+用这个模板生成的每个工具都属于「篝火」App，归属信息集中在 `src/kit/brand.ts`，会出现在软件界面、「关于」页、安装包信息、README 与发布说明里。
+
 ## 许可证
 
-MIT
+MIT，版权方为篝火（campfire-code）
