@@ -107,6 +107,7 @@ export function useToolRunner(tool: ToolDef) {
       setRows(items);
       queue = items;
     } else {
+      if (tool.mode !== 'batch') return;
       queue = rowsRef.current.filter((r) => r.status === 'wait');
     }
     if (!queue.length) {
@@ -142,10 +143,22 @@ export function useToolRunner(tool: ToolDef) {
       }
     };
     await Promise.all(Array.from({ length: tool.concurrency ?? 2 }, worker));
+    await new Promise((r) => setTimeout(r, 0));
     setRunning(false);
     abortRef.current = null;
+    let tail = '';
+    if (!ac.signal.aborted && 'afterAll' in tool && tool.afterAll && ok) {
+      const done = rowsRef.current.filter((r) => r.status === 'ok' && r.result).map((r) => ({ item: r.item, result: r.result! }));
+      try {
+        tail = (await tool.afterAll(done, makeCtx(ac.signal, () => {}))) || '';
+      } catch (e) {
+        tail = `收尾失败：${errText(e)}`;
+        failed++;
+      }
+    }
     if (!ac.signal.aborted) {
-      setNotice(failed ? { kind: 'err', text: `完成 ${ok} 个，失败 ${failed} 个，失败原因见列表` } : { kind: 'ok', text: `全部完成，共 ${ok} 个` });
+      if (tail) tail = '。' + tail;
+      setNotice(failed ? { kind: 'err', text: `完成 ${ok} 个，失败 ${failed} 个，失败原因见列表${tail}` } : { kind: 'ok', text: `全部完成，共 ${ok} 个${tail}` });
       const entry: HistoryEntry = { at: new Date().toISOString(), total: ok + failed, ok, failed, outputDir: resolvedOut };
       setHistory((h) => {
         const next = [entry, ...h].slice(0, 50);
@@ -184,7 +197,9 @@ export function useToolRunner(tool: ToolDef) {
     return { ...s, ratio: rows.length ? done / rows.length : 0 };
   }, [rows]);
 
-  return { tool, rows, params, setParam, running, start, pause, retryFailed, addPaths, remove, clear, exportAll, stats, outputDir: resolvedOut, history, notice, setNotice };
+  const ctx = useMemo(() => makeCtx(new AbortController().signal, () => {}), [params, resolvedOut]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { tool, ctx, rows, params, setParam, running, start, pause, retryFailed, addPaths, remove, clear, exportAll, stats, outputDir: resolvedOut, history, notice, setNotice };
 }
 
 export type Runner = ReturnType<typeof useToolRunner>;

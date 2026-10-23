@@ -7,6 +7,7 @@ import { LAYOUTS, type Page } from './kit/layouts';
 import type { Runner, Row } from './kit/runner';
 import type { LayoutId, PaletteId, ToolMeta } from './kit/types';
 import tool from './tool';
+import toolMeta from '../tool.json';
 import './kit/kit.css';
 
 mockWindows('main');
@@ -14,8 +15,8 @@ mockIPC(() => null);
 (window as unknown as { __TAURI_INTERNALS__: { convertFileSrc: (p: string) => string } }).__TAURI_INTERNALS__.convertFileSrc = (p) => p;
 
 const q = new URLSearchParams(location.search);
-const layout = (q.get('layout') ?? 'a') as LayoutId;
-const palette = (q.get('palette') ?? 'blue') as PaletteId;
+const layout = (q.get('layout') ?? toolMeta.ui.layout) as LayoutId;
+const palette = (q.get('palette') ?? toolMeta.ui.palette) as PaletteId;
 const page = (q.get('page') ?? 'main') as Page;
 const state = q.get('state') ?? 'running';
 Object.assign(document.documentElement.dataset, { layout, palette, mode: q.get('mode') ?? 'light', size: q.get('size') ?? 'std' });
@@ -34,8 +35,11 @@ function sample(i: number, done: boolean) {
   return c.toDataURL('image/png');
 }
 const names = ['保温杯-主图-01.jpg', '保温杯-主图-02.jpg', '运动鞋-侧面.png', '连衣裙-正面.jpg', '蓝牙耳机-盒.jpg', '零食礼盒.jpg', '数据线-缩略.jpg', '香薰蜡烛.png', '帆布包.jpg', '台灯.png'];
+// 工具可在 src/tool/preview.ts 里导出自己的示例数据：rows（列表）、params（参数覆盖）、notice（提示条）
+type PreviewData = { rows?: (s: string) => Row[]; params?: Record<string, string | number | boolean>; notice?: { kind: 'ok' | 'err'; text: string } };
+const custom = (Object.values(import.meta.glob('./tool/preview.ts', { eager: true }))[0] as PreviewData | undefined) ?? {};
 const statuses: Row['status'][] = state === 'empty' ? [] : state === 'done' ? ['ok', 'ok', 'ok', 'ok', 'ok', 'ok', 'err', 'ok', 'ok', 'ok'] : ['ok', 'ok', 'ok', 'run', 'wait', 'wait', 'err', 'wait', 'wait', 'wait'];
-const rows: Row[] = statuses.map((status, i) => ({
+const rows: Row[] = custom.rows ? custom.rows(state) : statuses.map((status, i) => ({
   item: { id: `s${i}`, name: names[i], path: sample(i, false), size: 300_000 + i * 97_000 },
   status,
   progress: status === 'run' ? 0.63 : status === 'ok' ? 1 : 0,
@@ -48,13 +52,13 @@ stats.ratio = rows.length ? (stats.ok + stats.err + 0.63 * stats.run) / rows.len
 const noop = () => {};
 const runner = {
   tool, rows, stats, running: state === 'running',
-  params: Object.fromEntries(tool.params.map((f) => [f.key, f.default])),
+  params: { ...Object.fromEntries(tool.params.map((f) => [f.key, f.default])), ...custom.params },
   setParam: noop, start: async () => {}, pause: noop, retryFailed: noop, addPaths: async () => {}, remove: noop, clear: noop, exportAll: async () => {},
   outputDir: '/Users/demo/Downloads/图片批量压缩',
   history: [{ at: '2026-10-23T09:12:00Z', total: 24, ok: 23, failed: 1, outputDir: '/Users/demo/Downloads/图片批量压缩' }],
-  notice: state === 'done' ? { kind: 'err' as const, text: '完成 9 个，失败 1 个，失败原因见列表' } : null,
+  notice: custom.notice ?? (state === 'done' ? { kind: 'err' as const, text: '完成 9 个，失败 1 个，失败原因见列表' } : null),
   setNotice: noop,
 } as unknown as Runner;
-const meta: ToolMeta = { id: tool.id, slug: 'image-compressor', name: tool.name, version: '0.1.0', repo: 'campfire-code/image-compressor', license: 'MIT', ui: { layout, palette } };
+const meta: ToolMeta = { ...(toolMeta as ToolMeta), ui: { layout, palette } };
 const Layout = LAYOUTS[layout];
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><Layout runner={runner} meta={meta} hover={false} page={page} setPage={noop} /></React.StrictMode>);
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><Layout runner={{ ...runner, tool: { ...tool, name: meta.name } } as Runner} meta={meta} hover={false} page={page} setPage={noop} /></React.StrictMode>);

@@ -4,7 +4,7 @@ import { Image as ImageIcon, Clock, KeyRound, Info, Trash2, Settings2, ChevronLe
 import type { Field, LayoutId, ToolMeta } from './types';
 import type { Row, Runner } from './runner';
 import {
-  AboutPage, AddButtons, BrandMark, DropZone, EmptyState, ExportAction, FieldControl, HistoryPage, Notice, ParamsPanel, PrimaryAction,
+  AboutPage, AddButtons, BrandMark, visibleFields, DropZone, EmptyState, ExportAction, FieldControl, HistoryPage, Notice, ParamsPanel, PrimaryAction,
   ProgressBar, ResultText, RowActions, SettingsPage, StatusChip, Summary, Thumb, pct,
 } from './parts';
 
@@ -23,15 +23,22 @@ const PAGES: [Page, string, typeof ImageIcon][] = [
   ['settings', '设置', KeyRound],
   ['about', '关于', Info],
 ];
-const mainLabel = (r: Runner) => (r.tool.mode === 'batch' ? '批量处理' : '生成');
+const mainLabel = (r: Runner) => (r.tool.mode === 'batch' ? '批量处理' : r.tool.mode === 'generate' ? '生成' : r.tool.mainLabel ?? '主页');
 /** 用不到大模型的工具不出现「设置」页，外观切换放在「关于」里 */
-const pagesFor = (r: Runner) => PAGES.filter(([p]) => p !== 'settings' || r.tool.needsLLM);
+const pagesFor = (r: Runner) => PAGES.filter(([p]) => (p !== 'settings' || r.tool.needsLLM) && (p !== 'history' || r.tool.mode !== 'custom'));
 
 function SubPage({ page, runner, meta }: { page: Page; runner: Runner; meta: ToolMeta }) {
   if (page === 'history') return <HistoryPage runner={runner} />;
   if (page === 'settings' && runner.tool.needsLLM) return <SettingsPage />;
   if (page === 'about') return <AboutPage meta={meta} tagline={runner.tool.tagline} withTheme={!runner.tool.needsLLM} />;
   return null;
+}
+
+/** 自定义型工具的主体 */
+function CustomMain({ runner }: { runner: Runner }) {
+  const t = runner.tool;
+  if (t.mode !== 'custom') return null;
+  return <div className="k-custom">{t.Main({ ctx: runner.ctx })}</div>;
 }
 
 /** 结果区：表格 / 文本类工具在所有布局里形态固定，其余由布局决定 */
@@ -86,7 +93,7 @@ function Results({ runner, variant, selected, onSelect }: { runner: Runner; vari
       {runner.rows.map((r) => (
         <div key={r.item.id} className={`k-row${selected === r.item.id ? ' sel' : ''}`} onClick={() => onSelect?.(r.item.id)}>
           <Thumb row={r} runner={runner} />
-          <div className="k-row-name"><span className="k-ellipsis" title={r.item.name}>{r.item.name}</span>{r.item.size != null && v !== 'compact' && <small className="k-muted k-num">{(r.item.size / 1024).toFixed(0)} KB</small>}</div>
+          <div className="k-row-name"><span className="k-ellipsis" title={r.item.name}>{r.item.name}</span>{v === 'compact' ? (r.status === 'ok' && r.result?.summary ? <small className="k-muted k-ellipsis">{r.result.summary}</small> : r.status === 'err' ? <small className="k-err-text k-ellipsis" title={r.error}>{r.error}</small> : null) : r.item.size != null && <small className="k-muted k-num">{(r.item.size / 1024).toFixed(0)} KB</small>}</div>
           <StatusChip row={r} short={v === 'compact'} />
           <RowActions row={r} />
           {!runner.running && r.status !== 'run' && <button className="k-icon-btn" aria-label="移除" title="移除" onClick={(e) => { e.stopPropagation(); runner.remove(r.item.id); }}><Trash2 size={14} /></button>}
@@ -116,7 +123,7 @@ function LayoutA({ runner, meta, hover, page, setPage }: LayoutProps) {
         ))}
       </nav>
       <main className="a-main">
-        {page !== 'main' ? <SubPage page={page} runner={runner} meta={meta} /> : (
+        {page !== 'main' ? <SubPage page={page} runner={runner} meta={meta} /> : runner.tool.mode === 'custom' ? <CustomMain runner={runner} /> : (
           <>
             <header className="a-h"><h1>{mainLabel(runner)}</h1><AddButtons runner={runner} />{runner.tool.mode === 'batch' && <button className="k-btn" disabled={runner.running || empty} onClick={runner.clear}><Trash2 size={15} />清空</button>}</header>
             <Notice runner={runner} />
@@ -139,7 +146,7 @@ function LayoutB({ runner, meta, hover, page, setPage }: LayoutProps) {
   return (
     <div className="L-b">
       <div className="b-tool" role="toolbar" aria-label="工具栏">
-        {page === 'main' ? (
+        {page === 'main' && runner.tool.mode === 'custom' ? <b>{meta.name}</b> : page === 'main' ? (
           <>
             <AddButtons runner={runner} compact />
             {runner.tool.mode === 'batch' && <button className="k-btn" disabled={runner.running || !runner.rows.length} onClick={runner.clear}><Trash2 size={15} />清空</button>}
@@ -153,7 +160,7 @@ function LayoutB({ runner, meta, hover, page, setPage }: LayoutProps) {
         <span className="b-sp" />
         {pagesFor(runner).slice(1).map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l}</button>)}
       </div>
-      {page !== 'main' ? <div className="b-page k-scroll"><SubPage page={page} runner={runner} meta={meta} /></div> : (
+      {page !== 'main' ? <div className="b-page k-scroll"><SubPage page={page} runner={runner} meta={meta} /></div> : runner.tool.mode === 'custom' ? <div className="b-page k-scroll"><CustomMain runner={runner} /></div> : (
         <div className="b-body">
           <section className="b-table k-scroll">
             <Notice runner={runner} />
@@ -197,6 +204,15 @@ function LayoutC({ runner, meta, hover, page, setPage }: LayoutProps) {
     if (view + 1 === runStep) { setStep(runStep); runner.start(); } else setStep(view + 1);
   };
   const genLabel = runner.tool.mode === 'generate' ? runner.tool.generateLabel ?? '开始生成' : '开始处理';
+  if (runner.tool.mode === 'custom') {
+    return (
+      <div className="L-c">
+        <div className="c-steps"><b className="c-title">{meta.name}</b><span className="c-sp" style={{ flex: 1 }} />{pagesFor(runner).map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l || '主页'}</button>)}</div>
+        <main className="c-body k-scroll">{page === 'main' ? <CustomMain runner={runner} /> : <SubPage page={page} runner={runner} meta={meta} />}</main>
+        <footer className="c-foot"><span /><span className="k-muted c-mid"><BrandMark /></span><span /></footer>
+      </div>
+    );
+  }
   return (
     <div className="L-c">
       <div className="c-steps">
@@ -231,7 +247,7 @@ function LayoutC({ runner, meta, hover, page, setPage }: LayoutProps) {
                   <h1>{runner.running ? '正在处理' : '处理完成'}</h1>
                   <div className="c-ring"><span className="r" style={{ ['--p' as string]: pct(runner.stats.ratio) }}><span className="k-num">{pct(runner.stats.ratio)}</span></span><div className="c-ring-text"><Summary runner={runner} />{runner.running && <span className="k-muted">处理中可以先做别的事</span>}</div></div>
                 </div>
-                <div className="c-card"><h1>本次设置</h1><dl className="c-kv">{runner.tool.params.map((f) => <div key={f.key}><dt>{f.label}</dt><dd>{display(f, runner.params[f.key])}</dd></div>)}</dl></div>
+                <div className="c-card"><h1>本次设置</h1><dl className="c-kv">{visibleFields(runner).map((f) => <div key={f.key}><dt>{f.label}</dt><dd>{display(f, runner.params[f.key])}</dd></div>)}</dl></div>
                 <div className="c-card c-span"><Results runner={runner} variant="cards" /></div>
               </div>
             )}
@@ -267,7 +283,7 @@ function LayoutD({ runner, meta, hover, page, setPage }: LayoutProps) {
   return (
     <div className="L-d">
       <div className="d-top"><b>{meta.name}</b><BrandMark /><span className="b-sp" />{pagesFor(runner).map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l || mainLabel(runner)}</button>)}</div>
-      {page !== 'main' ? <div className="d-page k-scroll"><SubPage page={page} runner={runner} meta={meta} /></div> : (
+      {page !== 'main' ? <div className="d-page k-scroll"><SubPage page={page} runner={runner} meta={meta} /></div> : runner.tool.mode === 'custom' ? <div className="d-page k-scroll"><CustomMain runner={runner} /></div> : (
         <div className="d-body">
           <aside className="d-files">
             <div className="d-files-hd"><Summary runner={runner} /><AddButtons runner={runner} compact /></div>
@@ -288,8 +304,9 @@ function LayoutD({ runner, meta, hover, page, setPage }: LayoutProps) {
 // ---------- E 极简单窗 · 拖入即用 ----------
 function LayoutE({ runner, meta, hover, page, setPage }: LayoutProps) {
   const [more, setMore] = useState(false);
-  const quick: Field[] = runner.tool.params.filter((f) => f.type === 'segment' || f.type === 'toggle').slice(0, 3);
-  const rest = runner.tool.params.filter((f) => !quick.includes(f));
+  const all = visibleFields(runner);
+  const quick: Field[] = all.length <= 5 ? all : all.slice(0, 4);
+  const rest = all.filter((f) => !quick.includes(f));
   return (
     <div className="L-e">
       <div className="e-top"><BrandMark /><span className="b-sp" />{pagesFor(runner).slice(1).map(([p, l]) => <button key={p} className={`k-link${page === p ? ' on' : ''}`} onClick={() => setPage(page === p ? 'main' : p)}>{l}</button>)}</div>
@@ -297,18 +314,20 @@ function LayoutE({ runner, meta, hover, page, setPage }: LayoutProps) {
         {page !== 'main' ? <><button className="k-link" onClick={() => setPage('main')}><ChevronLeft size={14} />返回</button><SubPage page={page} runner={runner} meta={meta} /></> : (
           <>
             <h1 className="e-title">{meta.name}</h1>
+            {runner.tool.mode === 'custom' ? <CustomMain runner={runner} /> : <>
             {runner.tool.mode === 'batch' ? <DropZone runner={runner} hover={hover} /> : <p className="k-muted">{runner.tool.tagline}</p>}
             <div className="e-quick">
               {quick.map((f) => <FieldControl key={f.key} field={f} value={runner.params[f.key]} disabled={runner.running} onChange={(v) => runner.setParam(f.key, v)} />)}
-              {rest.length > 0 && <button className="k-chip" onClick={() => setMore(!more)}><Settings2 size={13} />{more ? '收起选项' : `更多选项（${rest.length}）`}</button>}
             </div>
+            {rest.length > 0 && <div><button className="k-chip" onClick={() => setMore(!more)}><Settings2 size={13} />{more ? '收起选项' : `更多选项（${rest.length}）`}</button></div>}
             {more && <div className="e-more">{rest.map((f) => <FieldControl key={f.key} field={f} value={runner.params[f.key]} disabled={runner.running} onChange={(v) => runner.setParam(f.key, v)} />)}</div>}
             <Notice runner={runner} />
             <Results runner={runner} variant="compact" />
+            </>}
           </>
         )}
       </main>
-      {page === 'main' && <footer className="e-foot"><Footer runner={runner}><ExportAction runner={runner} /><PrimaryAction runner={runner} /></Footer></footer>}
+      {page === 'main' && runner.tool.mode !== 'custom' && <footer className="e-foot"><Footer runner={runner}><ExportAction runner={runner} /><PrimaryAction runner={runner} /></Footer></footer>}
     </div>
   );
 }
@@ -324,7 +343,7 @@ function LayoutF({ runner, meta, hover, page, setPage }: LayoutProps) {
         <span className="b-sp" />
         {page === 'main' && <AddButtons runner={runner} />}
       </div>
-      {page !== 'main' ? <div className="f-page k-scroll"><SubPage page={page} runner={runner} meta={meta} /></div> : (
+      {page !== 'main' ? <div className="f-page k-scroll"><SubPage page={page} runner={runner} meta={meta} /></div> : runner.tool.mode === 'custom' ? <div className="f-page k-scroll"><CustomMain runner={runner} /></div> : (
         <main className="f-body">
           <div className="f-bar">
             {([['all', `全部 ${runner.stats.total}`], ['ok', `已完成 ${runner.stats.ok}`], ['err', `失败 ${runner.stats.err}`]] as const).map(([k, l]) => <button key={k} className={`k-chip${filter === k ? ' on' : ''}`} onClick={() => setFilter(k)}>{l}</button>)}
@@ -335,7 +354,7 @@ function LayoutF({ runner, meta, hover, page, setPage }: LayoutProps) {
           <div className="k-scroll f-grid-wrap">{runner.rows.length ? <Results runner={shown} variant="cards" /> : <EmptyState runner={runner} hover={hover} />}</div>
         </main>
       )}
-      {page === 'main' && <footer className="f-foot"><Footer runner={runner}><ExportAction runner={runner} /><PrimaryAction runner={runner} /></Footer></footer>}
+      {page === 'main' && runner.tool.mode !== 'custom' && <footer className="f-foot"><Footer runner={runner}><ExportAction runner={runner} /><PrimaryAction runner={runner} /></Footer></footer>}
     </div>
   );
 }

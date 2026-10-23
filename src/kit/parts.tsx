@@ -108,7 +108,7 @@ export function ParamsPanel({ runner, title }: { runner: Runner; title?: string 
   return (
     <div className="k-params">
       {title && <b className="k-params-title">{title}</b>}
-      {runner.tool.params.map((f) => (
+      {visibleFields(runner).map((f) => (
         <FieldControl key={f.key} field={f} value={runner.params[f.key]} disabled={runner.running} onChange={(v) => runner.setParam(f.key, v)} />
       ))}
     </div>
@@ -173,7 +173,7 @@ export function Summary({ runner }: { runner: Runner }) {
 
 export function EmptyState({ runner, hover }: { runner: Runner; hover: boolean }) {
   return runner.tool.mode === 'batch' ? <DropZone runner={runner} hover={hover} big /> : (
-    <div className="k-empty"><b>{runner.tool.name}</b><span>{runner.tool.tagline}</span><span className="k-muted">在参数里填好内容，点「{runner.tool.generateLabel ?? '开始生成'}」</span></div>
+    <div className="k-empty"><b>{runner.tool.name}</b><span>{runner.tool.tagline}</span>{runner.tool.mode === 'generate' && <span className="k-muted">在参数里填好内容，点「{runner.tool.generateLabel ?? '开始生成'}」</span>}</div>
   );
 }
 
@@ -277,3 +277,6 @@ export function AboutPage({ meta, tagline, withTheme }: { meta: ToolMeta; taglin
 
 /** 界面里的归属标识，各布局放在不抢眼的位置 */
 export const BrandMark = () => <span className="k-brand" title={BRAND.statement}>{BRAND.mark}</span>;
+
+/** 按 when 条件过滤当前要显示的参数 */
+export const visibleFields = (runner: Runner) => runner.tool.params.filter((f) => !f.when || f.when(runner.params));

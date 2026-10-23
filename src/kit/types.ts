@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 // 工具声明：每个工具只描述「收什么、调什么参数、怎么处理」，界面由 kit 按抽到的布局渲染。
 
 export type ToolType = 'media' | 'data' | 'text';
@@ -5,13 +7,13 @@ export type LayoutId = 'a' | 'b' | 'c' | 'd' | 'e' | 'f';
 export type PaletteId = 'blue' | 'teal' | 'orange' | 'amber' | 'green' | 'violet' | 'rose';
 
 export type Field =
-  | { key: string; label: string; type: 'segment'; options: [string, string][]; default: string; help?: string }
-  | { key: string; label: string; type: 'select'; options: [string, string][]; default: string; help?: string }
-  | { key: string; label: string; type: 'number'; default: number; min?: number; max?: number; step?: number; unit?: string; help?: string }
-  | { key: string; label: string; type: 'text'; default: string; placeholder?: string; help?: string }
-  | { key: string; label: string; type: 'textarea'; default: string; placeholder?: string; rows?: number; help?: string }
-  | { key: string; label: string; type: 'toggle'; default: boolean; help?: string }
-  | { key: string; label: string; type: 'folder'; default: string; help?: string };
+  | { key: string; label: string; type: 'segment'; when?: (p: Params) => boolean; options: [string, string][]; default: string; help?: string }
+  | { key: string; label: string; type: 'select'; when?: (p: Params) => boolean; options: [string, string][]; default: string; help?: string }
+  | { key: string; label: string; type: 'number'; when?: (p: Params) => boolean; default: number; min?: number; max?: number; step?: number; unit?: string; help?: string }
+  | { key: string; label: string; type: 'text'; when?: (p: Params) => boolean; default: string; placeholder?: string; help?: string }
+  | { key: string; label: string; type: 'textarea'; when?: (p: Params) => boolean; default: string; placeholder?: string; rows?: number; help?: string }
+  | { key: string; label: string; type: 'toggle'; when?: (p: Params) => boolean; default: boolean; help?: string }
+  | { key: string; label: string; type: 'folder'; when?: (p: Params) => boolean; default: string; help?: string };
 
 export type Params = Record<string, string | number | boolean>;
 
@@ -35,6 +37,8 @@ export interface ItemResult {
   text?: string;
   /** 表格结果的一行，键对应 ToolDef.columns */
   row?: Record<string, string | number>;
+  /** 留给 afterAll 用的数据，不显示 */
+  data?: unknown;
 }
 
 export interface RunContext {
@@ -72,6 +76,8 @@ interface ToolBase {
   /** 汇总导出（例如把所有行导出成一个 Excel），返回导出文件路径 */
   exportAll?: (results: { item: InputItem; result: ItemResult }[], ctx: RunContext) => Promise<string>;
   exportLabel?: string;
+  /** 整批处理完（没有被暂停）后自动执行的收尾，比如把所有文件合并成一个；返回要告诉用户的话 */
+  afterAll?: (results: { item: InputItem; result: ItemResult }[], ctx: RunContext) => Promise<string | void>;
 }
 
 export interface BatchTool extends ToolBase {
@@ -90,7 +96,16 @@ export interface GenerateTool extends ToolBase {
   generateLabel?: string;
 }
 
-export type ToolDef = BatchTool | GenerateTool;
+/** 自定义型：工具自己渲染主体内容（例如话术库、看板），框架提供外框、导航、关于与设置 */
+export interface CustomTool extends Omit<ToolBase, 'resultView'> {
+  mode: 'custom';
+  resultView?: never;
+  /** 主页面在导航里的名字，默认「主页」 */
+  mainLabel?: string;
+  Main: (props: { ctx: Pick<RunContext, 'readFile' | 'readText' | 'writeFile' | 'writeText' | 'join' | 'llm' | 'sidecar'> }) => ReactNode;
+}
+
+export type ToolDef = BatchTool | GenerateTool | CustomTool;
 
 export interface ToolMeta {
   id: string;
