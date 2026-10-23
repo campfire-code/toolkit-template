@@ -24,11 +24,13 @@ const PAGES: [Page, string, typeof ImageIcon][] = [
   ['about', '关于', Info],
 ];
 const mainLabel = (r: Runner) => (r.tool.mode === 'batch' ? '批量处理' : '生成');
+/** 用不到大模型的工具不出现「设置」页，外观切换放在「关于」里 */
+const pagesFor = (r: Runner) => PAGES.filter(([p]) => p !== 'settings' || r.tool.needsLLM);
 
 function SubPage({ page, runner, meta }: { page: Page; runner: Runner; meta: ToolMeta }) {
   if (page === 'history') return <HistoryPage runner={runner} />;
-  if (page === 'settings') return <SettingsPage needsLLM={runner.tool.needsLLM} />;
-  if (page === 'about') return <AboutPage meta={meta} tagline={runner.tool.tagline} />;
+  if (page === 'settings' && runner.tool.needsLLM) return <SettingsPage />;
+  if (page === 'about') return <AboutPage meta={meta} tagline={runner.tool.tagline} withTheme={!runner.tool.needsLLM} />;
   return null;
 }
 
@@ -109,7 +111,7 @@ function LayoutA({ runner, meta, hover, page, setPage }: LayoutProps) {
     <div className="L-a">
       <nav className="a-side" aria-label="导航">
         <div className="a-brand"><span className="a-logo"><ImageIcon size={18} /></span><span>{meta.name}</span></div>
-        {PAGES.map(([p, l, I]) => (
+        {pagesFor(runner).map(([p, l, I]) => (
           <button key={p} className={`a-nav${page === p ? ' on' : ''}`} onClick={() => setPage(p)} aria-current={page === p}><I size={16} />{l || mainLabel(runner)}</button>
         ))}
       </nav>
@@ -149,7 +151,7 @@ function LayoutB({ runner, meta, hover, page, setPage }: LayoutProps) {
           <button className="k-btn" onClick={() => setPage('main')}><ChevronLeft size={15} />返回{mainLabel(runner)}</button>
         )}
         <span className="b-sp" />
-        {PAGES.slice(1).map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l}</button>)}
+        {pagesFor(runner).slice(1).map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l}</button>)}
       </div>
       {page !== 'main' ? <div className="b-page k-scroll"><SubPage page={page} runner={runner} meta={meta} /></div> : (
         <div className="b-body">
@@ -207,7 +209,7 @@ function LayoutC({ runner, meta, hover, page, setPage }: LayoutProps) {
           </span>
         ))}
         <span className="c-sp" />
-        {PAGES.slice(1).map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(page === p ? 'main' : p)}><I size={15} />{l}</button>)}
+        {pagesFor(runner).slice(1).map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(page === p ? 'main' : p)}><I size={15} />{l}</button>)}
       </div>
       <main className="c-body k-scroll">
         {page !== 'main' ? <SubPage page={page} runner={runner} meta={meta} /> : (
@@ -264,7 +266,7 @@ function LayoutD({ runner, meta, hover, page, setPage }: LayoutProps) {
   const row = runner.rows.find((r) => r.item.id === sel) ?? runner.rows.find((r) => r.status === 'run') ?? runner.rows[0];
   return (
     <div className="L-d">
-      <div className="d-top"><b>{meta.name}</b><span className="b-sp" />{PAGES.map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l || mainLabel(runner)}</button>)}</div>
+      <div className="d-top"><b>{meta.name}</b><span className="b-sp" />{pagesFor(runner).map(([p, l, I]) => <button key={p} className={`k-btn ghost${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l || mainLabel(runner)}</button>)}</div>
       {page !== 'main' ? <div className="d-page k-scroll"><SubPage page={page} runner={runner} meta={meta} /></div> : (
         <div className="d-body">
           <aside className="d-files">
@@ -290,7 +292,7 @@ function LayoutE({ runner, meta, hover, page, setPage }: LayoutProps) {
   const rest = runner.tool.params.filter((f) => !quick.includes(f));
   return (
     <div className="L-e">
-      <div className="e-top">{PAGES.slice(1).map(([p, l]) => <button key={p} className={`k-link${page === p ? ' on' : ''}`} onClick={() => setPage(page === p ? 'main' : p)}>{l}</button>)}</div>
+      <div className="e-top">{pagesFor(runner).slice(1).map(([p, l]) => <button key={p} className={`k-link${page === p ? ' on' : ''}`} onClick={() => setPage(page === p ? 'main' : p)}>{l}</button>)}</div>
       <main className="e-col k-scroll">
         {page !== 'main' ? <><button className="k-link" onClick={() => setPage('main')}><ChevronLeft size={14} />返回</button><SubPage page={page} runner={runner} meta={meta} /></> : (
           <>
@@ -318,7 +320,7 @@ function LayoutF({ runner, meta, hover, page, setPage }: LayoutProps) {
   return (
     <div className="L-f">
       <div className="f-tabs" role="tablist">
-        {PAGES.map(([p, l, I]) => <button key={p} role="tab" aria-selected={page === p} className={`f-tab${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l || mainLabel(runner)}</button>)}
+        {pagesFor(runner).map(([p, l, I]) => <button key={p} role="tab" aria-selected={page === p} className={`f-tab${page === p ? ' on' : ''}`} onClick={() => setPage(p)}><I size={15} />{l || mainLabel(runner)}</button>)}
         <span className="b-sp" />
         {page === 'main' && <AddButtons runner={runner} />}
       </div>

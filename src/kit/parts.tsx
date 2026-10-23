@@ -183,7 +183,22 @@ export function ResultText({ row }: { row: Row }) {
 
 // ---------- 设置 / 记录 / 关于 ----------
 
-export function SettingsPage({ needsLLM }: { needsLLM?: boolean }) {
+function ThemeSwitch() {
+  const s = useSettings();
+  return (
+    <section className="k-section">
+      <h3>外观</h3>
+      <div className="k-seg" role="radiogroup" aria-label="外观">
+        {([['system', '跟随系统'], ['light', '亮色'], ['dark', '暗色']] as [ThemePref, string][]).map(([v, l]) => (
+          <button key={v} role="radio" aria-checked={s.theme === v} className={s.theme === v ? 'on' : ''} onClick={() => saveSettings({ theme: v })}>{l}</button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** 只有需要大模型的工具才有这个页面 */
+export function SettingsPage() {
   const s = useSettings();
   const [draft, setDraft] = useState(s.llm);
   const [test, setTest] = useState<string | null>(null);
@@ -193,16 +208,8 @@ export function SettingsPage({ needsLLM }: { needsLLM?: boolean }) {
   return (
     <div className="k-page">
       <section className="k-section">
-        <h3>外观</h3>
-        <div className="k-seg" role="radiogroup" aria-label="外观">
-          {([['system', '跟随系统'], ['light', '亮色'], ['dark', '暗色']] as [ThemePref, string][]).map(([v, l]) => (
-            <button key={v} role="radio" aria-checked={s.theme === v} className={s.theme === v ? 'on' : ''} onClick={() => saveSettings({ theme: v })}>{l}</button>
-          ))}
-        </div>
-      </section>
-      <section className="k-section">
-        <h3>大模型{needsLLM ? '（本工具需要）' : '（本工具用不到，可不填）'}</h3>
-        <p className="k-muted">填你自己的接口密钥，兼容 OpenAI 接口格式。密钥只保存在这台电脑上。</p>
+        <h3>大模型</h3>
+        <p className="k-muted">本工具需要调用大模型。填你自己的接口密钥，兼容 OpenAI 接口格式；密钥只保存在这台电脑上。</p>
         <div className="k-presets">
           {LLM_PRESETS.map((p) => (
             <button key={p.name} className="k-chip" onClick={() => setDraft({ ...draft, baseUrl: p.baseUrl || draft.baseUrl, model: p.model || draft.model })}>{p.name}</button>
@@ -222,6 +229,7 @@ export function SettingsPage({ needsLLM }: { needsLLM?: boolean }) {
           {test && <span className="k-muted" role="status">{test}</span>}
         </div>
       </section>
+      <ThemeSwitch />
     </div>
   );
 }
@@ -242,7 +250,7 @@ export function HistoryPage({ runner }: { runner: Runner }) {
   );
 }
 
-export function AboutPage({ meta, tagline }: { meta: ToolMeta; tagline: string }) {
+export function AboutPage({ meta, tagline, withTheme }: { meta: ToolMeta; tagline: string; withTheme?: boolean }) {
   return (
     <div className="k-page">
       <section className="k-section">
@@ -255,6 +263,7 @@ export function AboutPage({ meta, tagline }: { meta: ToolMeta; tagline: string }
           <button className="k-btn" onClick={() => openLink(`https://github.com/${meta.repo}/releases/latest`)}><ExternalLink size={15} />检查新版本</button>
         </div>
       </section>
+      {withTheme && <ThemeSwitch />}
     </div>
   );
 }
