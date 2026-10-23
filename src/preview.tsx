@@ -61,7 +61,7 @@ const runner = {
   // 预览用的假上下文：读写不落盘，大模型返回固定文字
   ctx: {
     readFile: async () => new Uint8Array(), readText: async () => '', writeFile: async () => {}, writeText: async () => {},
-    mkdir: async () => {}, join: async (...p: string[]) => p.join('/'), llm: async () => '（预览）', sidecar: async () => '',
+    mkdir: async () => {}, join: async (...p: string[]) => p.join('/'), llm: async () => '（预览）', sidecar: async () => '', ffmpeg: async () => {}, duration: async () => 0,
   },
 } as unknown as Runner;
 const meta: ToolMeta = { ...(toolMeta as ToolMeta), ui: { layout, palette } };
