@@ -104,6 +104,13 @@ export function FieldControl({ field, value, onChange, disabled }: { field: Fiel
       );
       break;
     }
+    case 'file':
+      control = (
+        <button id={id} className="k-input k-folder" disabled={disabled} onClick={async () => { const [p] = await pickFiles(field.extensions, field.fileLabel); if (p) onChange(p); }}>
+          <span>{String(value) ? String(value).split(/[\\/]/).pop() : `选择${field.fileLabel}`}</span><FileText size={14} />
+        </button>
+      );
+      break;
     case 'folder':
       control = (
         <button id={id} className="k-input k-folder" disabled={disabled} onClick={async () => { const p = await pickFolder(); if (p) onChange(p); }}>

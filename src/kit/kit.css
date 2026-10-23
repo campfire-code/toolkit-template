@@ -144,7 +144,12 @@ html[data-layout="e"] .k-btn { border-radius: 999px; }
 .k-table th { text-align: left; font-weight: 600; color: var(--muted); font-size: .9em; padding: 7px 10px; background: var(--side); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 1; }
 .k-table td { padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .k-table tr.sel td { background: var(--primary-soft); }
-.k-table .k-name { display: flex; align-items: center; gap: 8px; }
+.k-table-wrap { overflow-x: auto; max-width: 100%; }
+.k-table th, .k-table td { white-space: nowrap; }
+.k-table .k-cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.k-table .k-name { display: flex; align-items: center; gap: 8px; min-width: 180px; max-width: 360px; }
+.k-name-text { display: grid; min-width: 0; }
+.k-name-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85em; }
 .k-table .k-thumb { width: 28px; height: 28px; border-radius: 4px; }
 .k-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
 .k-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; }

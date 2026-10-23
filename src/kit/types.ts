@@ -14,6 +14,8 @@ export type Field =
   | { key: string; label: string; type: 'textarea'; when?: (p: Params) => boolean; default: string; placeholder?: string; rows?: number; help?: string }
   | { key: string; label: string; type: 'toggle'; when?: (p: Params) => boolean; default: boolean; help?: string }
   | { key: string; label: string; type: 'folder'; when?: (p: Params) => boolean; default: string; help?: string }
+  /** 选择单个文件：值是文件路径 */
+  | { key: string; label: string; type: 'file'; when?: (p: Params) => boolean; extensions: string[]; fileLabel: string; default: string; help?: string }
   /** 多选：值是用英文逗号连接的选项键，例如 "taobao,pdd" */
   | { key: string; label: string; type: 'multi'; when?: (p: Params) => boolean; options: [string, string][]; default: string; help?: string };
 

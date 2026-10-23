@@ -156,8 +156,9 @@ export function useToolRunner(tool: ToolDef) {
     let tail = '';
     if (!ac.signal.aborted && 'afterAll' in tool && tool.afterAll && ok) {
       const done = rowsRef.current.filter((r) => r.status === 'ok' && r.result).map((r) => ({ item: r.item, result: r.result! }));
+      setNotice({ kind: 'ok', text: '正在汇总结果…' });
       try {
-        tail = (await tool.afterAll(done, makeCtx(ac.signal, () => {}))) || '';
+        tail = (await tool.afterAll(done, makeCtx(ac.signal, (r) => setNotice({ kind: 'ok', text: `正在汇总结果… ${Math.round(r * 100)}%` })))) || '';
       } catch (e) {
         tail = `收尾失败：${errText(e)}`;
         failed++;

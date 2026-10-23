@@ -62,19 +62,19 @@ function Results({ runner, variant, selected, onSelect }: { runner: Runner; vari
   if (v === 'table') {
     const cols = t.columns ?? [];
     return (
-      <table className="k-table">
+      <div className="k-table-wrap"><table className="k-table">
         <thead><tr><th>{t.mode === 'batch' ? '文件' : '序号'}</th>{cols.map(([k, l]) => <th key={k}>{l}</th>)}<th>状态</th><th aria-label="操作" /></tr></thead>
         <tbody>
           {runner.rows.map((r) => (
             <tr key={r.item.id} className={selected === r.item.id ? 'sel' : ''} onClick={() => onSelect?.(r.item.id)}>
-              <td><span className="k-name">{t.type === 'media' && <Thumb row={r} runner={runner} />}<span className="k-ellipsis" title={r.item.name}>{r.result?.title ?? r.item.name}</span></span></td>
-              {cols.map(([k]) => <td key={k} className="k-num">{r.result?.row?.[k] ?? ''}</td>)}
+              <td><span className="k-name">{t.type === 'media' && <Thumb row={r} runner={runner} />}<span className="k-name-text"><span className="k-ellipsis" title={r.item.name}>{r.result?.title ?? r.item.name}</span>{r.status === 'err' && <small className="k-err-text" title={r.error}>{r.error}</small>}</span></span></td>
+              {cols.map(([k]) => { const v = r.result?.row?.[k] ?? ''; return <td key={k} className="k-num k-cell" title={String(v)}>{v}</td>; })}
               <td><StatusChip row={r} short={cols.length > 2} /></td>
               <td><RowActions row={r} /></td>
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     );
   }
   if (v === 'cards') {
