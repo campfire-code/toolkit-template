@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { InputItem, ItemResult, Params, RunContext, ToolDef } from './types';
 import { chat } from './settings';
-import { defaultOutputDir, ensureDir, expandPaths, fs, runSidecar, settingsStore } from './platform';
+import { defaultOutputDir, ensureDir, ensureParent, expandPaths, fs, runSidecar, settingsStore } from './platform';
 
 export type Status = 'wait' | 'run' | 'ok' | 'err';
 export interface Row {
@@ -91,8 +91,9 @@ export function useToolRunner(tool: ToolDef) {
     progress: onProgress,
     readFile: fs.readFile,
     readText: fs.readTextFile,
-    writeFile: (p, d) => fs.writeFile(p, d),
-    writeText: (p, t) => fs.writeTextFile(p, t),
+    writeFile: async (p, d) => { await ensureParent(p); await fs.writeFile(p, d); },
+    writeText: async (p, t) => { await ensureParent(p); await fs.writeTextFile(p, t); },
+    mkdir: ensureDir,
     join: (...parts) => fs.join(...parts),
     llm: (m, o) => chat(m, { ...o, signal }),
     sidecar: runSidecar,
@@ -102,10 +103,16 @@ export function useToolRunner(tool: ToolDef) {
     if (running) return;
     let queue: Row[];
     if (tool.mode === 'generate') {
-      const n = tool.count?.(params) ?? 1;
-      const items: Row[] = Array.from({ length: n }, (_, i) => ({ item: { id: `g${Date.now()}_${i}`, name: `第 ${i + 1} 条` }, status: 'wait', progress: 0 }));
-      setRows(items);
-      queue = items;
+      // 有「重试失败的」留下的等待条目时只重跑这些，否则整批重新生成
+      const retry = rowsRef.current.filter((r) => r.status === 'wait');
+      if (retry.length && retry.length < rowsRef.current.length) {
+        queue = retry;
+      } else {
+        const n = tool.count?.(params) ?? 1;
+        const items: Row[] = Array.from({ length: n }, (_, i) => ({ item: { id: `g${Date.now()}_${i}`, name: tool.itemName?.(i, params) ?? `第 ${i + 1} 条` }, status: 'wait', progress: 0 }));
+        setRows(items);
+        queue = items;
+      }
     } else {
       if (tool.mode !== 'batch') return;
       queue = rowsRef.current.filter((r) => r.status === 'wait');
